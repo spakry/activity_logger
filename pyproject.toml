@@ -9,7 +9,7 @@ description = "AI-powered activity logger that captures screenshots and analyzes
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
-    {name = "Michael Kim", email = "your.email@example.com"}
+    {name = "Michael Kim", email = "mjunyeopkim@gmail.com"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
