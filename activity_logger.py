@@ -73,7 +73,7 @@ def analyze_screenshot_then_log(image):
                             "type": "text",
                             "text": (
                                 "Analyze this screenshot and describe the high-level action being performed "
-                                "in one concise sentence. Focus on what text was entered, what button is about "
+                                "answer briefly in one concise sentence. Focus on what text was entered, what button is about "
                                 "to be pressed, or what action is being taken. Provide context on"
                                 "where the action is performed, what the action is."
                             ),
@@ -89,7 +89,6 @@ def analyze_screenshot_then_log(image):
             ],
             max_tokens=150,
         )
-        print(response)
         chosen_response_content = response.choices[0].message.content 
         log_response(chosen_response_content)
 
@@ -117,19 +116,18 @@ def capture_screenshot():
     # print("Action logged!\n")
     return screenshot
 
-def log_response(response, log_dir='logs'):
-    date_str = datetime.datetime.now().strftime("%Y-%m-%d")   # CHANGED
+def log_response(response_content, log_dir='logs'):
+    date_str = datetime.datetime.now().strftime("%m-%d-%y")   # CHANGED
     log_filename = f"actions_log_{date_str}.txt"              # CHANGED
     actions_log = os.path.join(log_dir, log_filename)          # CHANGED
     os.makedirs(log_dir, exist_ok=True)
     
     with open(actions_log, "a") as f:  # same logic, still append
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        content = response.choices[0].message.content          # CHANGED
-        f.write(f"[{timestamp}] {content}\n")                  # CHANGED
+        f.write(f"[{timestamp}] {response_content}\n")                  # CHANGED
         print(f"[Wrote to] {actions_log}")
-        print(f"[Wrote log] {content}")
-    return content     
+        print(f"[Wrote log] {response_content}")
+    return response_content     
 
 def keyboard_event_callback(proxy, event_type, event, refcon):
     global event_tap  # ADD THIS LINE
@@ -141,17 +139,12 @@ def keyboard_event_callback(proxy, event_type, event, refcon):
 
         if keycode == ENTER_KEYCODE:
         
-            print("Enter key intercepted BEFORE system processing!")
-        
             screenshot = capture_screenshot()
             threading.Thread(target=save_screenshot, args=(screenshot,), daemon=True).start()
             threading.Thread(target=analyze_screenshot_then_log, args=(screenshot,), daemon=True).start()
 
-            # ADD THESE TWO LINES:
             if event_tap:
                 CGEventTapEnable(event_tap, True)
-    
-
     
     # Return the event to let it continue to the system
     return event
