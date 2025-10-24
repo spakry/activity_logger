@@ -1,5 +1,5 @@
 import threading
-import pyautogui
+import mss
 from pynput import keyboard, mouse
 import datetime
 import os
@@ -7,6 +7,7 @@ import base64
 from openai import OpenAI
 import io
 import base64
+from PIL import Image
 
 ## todo find way to prevent lag on pressing enter. 
 
@@ -29,10 +30,6 @@ from Quartz import (
 
 
 def encode_image_from_pil(image):
-    """
-    Convert a PIL Image object (e.g., pyautogui.screenshot()) 
-    into a base64-encoded PNG string for the API.
-    """
     buffer = io.BytesIO()        # create an in-memory binary stream
     image.save(buffer, format="PNG")  # write the image as PNG into the buffer
     buffer.seek(0)
@@ -73,6 +70,9 @@ class ActivityLogger:
         # Keycode for Return/Enter key on Mac
         self.ENTER_KEYCODE = 36
         self.event_tap = None
+        
+        # Initialize MSS for screenshot capture
+        self.mss_instance = mss.mss()
         
         # Setup logging directory
         os.makedirs(self.log_dir, exist_ok=True)
@@ -123,12 +123,13 @@ class ActivityLogger:
             return "Error analyzing screenshot"
     
     def capture_screenshot(self):
-        """Capture and save a screenshot"""
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        filename = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        """Capture and save a screenshot using mss"""
+        # Capture screenshot using mss (faster than pyautogui)
+        screenshot_data = self.mss_instance.grab(self.mss_instance.monitors[0])
         
-        # Take screenshot
-        screenshot = pyautogui.screenshot()
+        # Convert mss screenshot to PIL Image
+        screenshot = Image.frombytes("RGB", screenshot_data.size, screenshot_data.bgra, "raw", "BGRX")
+        
         return screenshot
     
     def log_response(self, response_content):

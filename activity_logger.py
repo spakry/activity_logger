@@ -1,5 +1,5 @@
 import threading
-import pyautogui
+import mss
 from pynput import keyboard, mouse
 import datetime
 import os
@@ -7,6 +7,7 @@ import base64
 from openai import OpenAI
 import io
 import base64
+from PIL import Image
 
 ## todo find way to prevent lag on pressing enter. 
 
@@ -98,22 +99,17 @@ def analyze_screenshot_then_log(image):
         print(f"Error analyzing screenshot: {e}")
         return "Error analyzing screenshot"
 
+# Initialize MSS for screenshot capture
+mss_instance = mss.mss()
+
 def capture_screenshot():
-    """Capture and save a screenshot"""
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    filename = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    """Capture and save a screenshot using mss"""
+    # Capture screenshot using mss (faster than pyautogui)
+    screenshot_data = mss_instance.grab(mss_instance.monitors[0])
     
-    # Take screenshot
-    screenshot = pyautogui.screenshot()
-    # screenshot.save(filepath)
+    # Convert mss screenshot to PIL Image
+    screenshot = Image.frombytes("RGB", screenshot_data.size, screenshot_data.bgra, "raw", "BGRX")
     
-    # Analyze with ChatGPT
-    # description = analyze_screenshot(filepath)
-    # print(f"Action: {description}")
-    
-    # Log the action
-    # log_action(timestamp, filepath, description)
-    # print("Action logged!\n")
     return screenshot
 
 def log_response(response_content, log_dir='logs'):
