@@ -100,20 +100,6 @@ python activity_logger.py
 - **Activity Logs**: Saved to `logs/actions_log_MM-DD-YY.txt`
 - **Format**: Each log entry includes timestamp and AI-generated description
 
-## Configuration
-
-### Customizing AI Analysis
-
-Edit the prompt in `activity_logger.py` around line 74-79 to customize how the AI analyzes screenshots:
-
-```python
-"text": (
-    "Analyze this screenshot and describe the high-level action being performed "
-    "answer briefly in one concise sentence. Focus on what text was entered, what button is about "
-    "to be pressed, or what action is being taken. Provide context on"
-    "where the action is performed, what the action is."
-),
-```
 
 ### Changing Log Directory
 
@@ -189,14 +175,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you encounter issues:
 
 1. Check the troubleshooting section above
-2. Open an issue on GitHub
-3. Make sure you're running on macOS with proper permissions
-
-## Roadmap
-
-- [ ] Support for other operating systems
-- [ ] Configurable hotkeys (not just Enter)
-- [ ] Web dashboard for viewing logs
-- [ ] Export logs to various formats
-- [ ] Screenshot compression options
-- [ ] Offline mode with local AI models
+2. Make sure you're running on macOS with proper permissions
