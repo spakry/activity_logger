@@ -45,19 +45,18 @@ pip install -r requirements.txt
 
 ## Setup
 
-### 1. Set OpenAI API Key
-
-Set your OpenAI API key as an environment variable:
-
-```bash
-export OPENAI_API_KEY="your-api-key-here"
+### 1. Download activity-logger using pip
 ```
-
-Or add it to your shell profile (`.bashrc`, `.zshrc`, etc.):
+pip3 install -e activity_logger
+```
+Provide your OpenAI API key as a flag to activity-logger, and you can customize the behavior.
 
 ```bash
-echo 'export OPENAI_API_KEY="your-api-key-here"' >> ~/.zshrc
-source ~/.zshrc
+  activity-logger --api-key sk-...  # Start with specific API key
+  activity-logger                    # Start with default settings
+  activity-logger --api-key sk-...  # Start with specific API key
+  activity-logger --screenshots ~/MyScreenshots  # Custom screenshot folder
+  activity-logger --logs ~/MyLogs    # Custom log directory
 ```
 
 ### 2. Grant Accessibility Permissions
@@ -78,32 +77,14 @@ After installation, you can run the activity logger with:
 activity-logger
 ```
 
-Or if installed manually:
-
-```bash
-python activity_logger.py
-```
-
 ### How It Works
 
 1. **Start the application**: Run the command above
-2. **Press Enter**: Whenever you press Enter in any application, the logger will:
-   - Capture a screenshot
-   - Send it to OpenAI's GPT-4 Vision API for analysis
-   - Log the AI's description of your action
-   - Save the screenshot to your Desktop/Screenshots folder
-3. **View logs**: Check the `logs/` directory for daily activity logs
+2. **View logs**: Check the `logs/` directory for daily activity logs
 
 ### Log Files
-
-- **Screenshots**: Saved to `~/Desktop/Screenshots/`
 - **Activity Logs**: Saved to `logs/actions_log_MM-DD-YY.txt`
-- **Format**: Each log entry includes timestamp and AI-generated description
-
-
-### Changing Log Directory
-
-Modify the `log_dir` parameter in the `log_response()` function calls to save logs to a different location.
+- **Format**: Each log entry includes timestamp
 
 ## File Structure
 
