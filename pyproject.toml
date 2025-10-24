@@ -38,9 +38,9 @@ dependencies = [
 activity-logger = "activity_logger.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/activity_logger"
-Repository = "https://github.com/yourusername/activity_logger"
-Issues = "https://github.com/yourusername/activity_logger/issues"
+Homepage = "https://github.com/spakry/activity_logger"
+Repository = "https://github.com/spakry/activity_logger"
+Issues = "https://github.com/spakry/activity_logger/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
