@@ -20,34 +20,22 @@ An AI-powered activity logger that captures screenshots and analyzes user action
 
 ## Installation
 
-### Option 1: Install from Source
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/activity_logger.git
-cd activity_logger
-```
-
-2. Install the package:
-
-```bash
-pip install -e .
-```
-
-### Option 2: Install Dependencies Manually
-
-1. Install required packages:
-
-```bash
-pip install -r requirements.txt
-```
-
 ## Setup
 
 ### 1. Download activity-logger using pip
+
 ```
-pip3 install -e activity_logger
+pip3 install activity_logger
+```
+Then add your python to your path
+```
+echo 'export PATH="$HOME/Library/Python/3.14/bin:$PATH"' >> ~/.zshrc
+
+# Restart zsh to apply the changes
+exec zsh
+
+# Run the activity-logger command
+activity-logger
 ```
 Provide your OpenAI API key as a flag to activity-logger, and you can customize the behavior.
 
