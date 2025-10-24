@@ -172,8 +172,7 @@ if not event_tap:
 run_loop_source = CFMachPortCreateRunLoopSource(None, event_tap, 0)
 CFRunLoopAddSource(CFRunLoopGetCurrent(), run_loop_source, kCFRunLoopCommonModes)
 
-print("Low-level keyboard hook active!")
-print("Press Enter to capture screenshot BEFORE system processes it")
+print("Activity logger is active!")
 print("Press Ctrl+C to stop\n")
 
 try:
