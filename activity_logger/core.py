@@ -41,7 +41,7 @@ class ActivityLogger:
     AI-powered activity logger that captures screenshots and analyzes user actions.
     """
     
-    def __init__(self, api_key=None, screenshot_folder=None, log_dir="logs"):
+    def __init__(self, api_key=None, screenshot_folder=None, log_dir="logs", on_status_change=None):
         """
         Initialize the Activity Logger.
         
@@ -49,6 +49,7 @@ class ActivityLogger:
             api_key (str): OpenAI API key. If None, uses OPENAI_API_KEY env var.
             screenshot_folder (str): Folder to save screenshots. Defaults to ~/Desktop/Screenshots
             log_dir (str): Directory to save activity logs. Defaults to 'logs'
+            on_status_change (callable): Optional callback function(status, message) for status updates
         """
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
@@ -76,6 +77,12 @@ class ActivityLogger:
         
         # Setup logging directory
         os.makedirs(self.log_dir, exist_ok=True)
+        
+        # GUI integration
+        self.on_status_change = on_status_change
+        self._running = False
+        self._should_stop = False
+        self._run_loop_thread = None
     
     def encode_image(self, image_path):
         """Encode image to base64 for API"""
@@ -96,10 +103,29 @@ class ActivityLogger:
                             {
                                 "type": "text",
                                 "text": (
-                                    "Analyze this screenshot and describe the high-level action being performed "
-                                    "answer briefly in one concise sentence. Focus on what text was entered, what button is about "
-                                    "to be pressed, or what action is being taken. Provide context on"
-                                    "where the action is performed, what the action is."
+                                    """
+                                    Analyze this screenshot and describe the high-level action being performed.
+                                    Answer briefly in one concise sentence. Focus on the high level action being performed, below are some examples:
+                                    It is important to keep the length of the response to a maximum of one concise sentence. 
+                                    Adding the product (enter product name and price) to the cart.
+                                    Sending payment to the Chase bank credit card account ending in 1234.
+                                    Entering terminal command <terminal command>
+                                    Executed the terminal command <terminal command>
+                                    Submit a ticket to (recipient here) for (purpose here)
+                                    Made a reservation to (location here) for (date and time here) for (cost here) 
+                                    Provide context on where the action is performed, what the action is.
+                                    Do not mention screenshot in the response, structure the logs as if it were server logs. 
+
+                                    The following log is not desirable:
+                                    [2025-10-16 21:22:22] The action being performed is running a command in a terminal to install a Python package using `pip install -e .`, while also inquiring about an error message that has occurred during the installation process.
+                                    because it does not specify which package is being installed. It also mentions an error message that has occurred during the installation process, without specifying what the error message is.
+                                    If information to determine which error message is being referred to is not available, do not mention it.
+
+                                    The following log is desirable:
+                                    [2025-10-16 21:22:22] Running a command in a terminal to install a Python package using `pip install -e .`.
+                                    because it specifies which package is being installed. It also does not mention an error message that has occurred during the installation process, without specifying what the error message is.
+                                    If information to determine which error message is being referred to is not available, do not mention it.
+                                    """
                                 ),
                             },
                             {
@@ -143,6 +169,11 @@ class ActivityLogger:
             f.write(f"[{timestamp}] {response_content}\n")                  # CHANGED
             print(f"[Wrote to] {actions_log}")
             print(f"[Wrote log] {response_content}")
+        
+        # Notify GUI of new log entry if callback is set
+        if self.on_status_change:
+            self.on_status_change("logged ", response_content)
+            
         return response_content     
     
     def keyboard_event_callback(self, proxy, event_type, event, refcon):
@@ -169,8 +200,17 @@ class ActivityLogger:
         self.saved_files.append(file_path)
         print(f'screenshot saved to {file_path}')
     
+    def is_running(self):
+        """Check if the logger is currently running"""
+        return self._running
+        
     def start(self):
         """Start the activity logger"""
+        if self._running:
+            return
+            
+        self._should_stop = False
+        
         # Create event tap
         event_mask = CGEventMaskBit(kCGEventKeyDown)
         self.event_tap = CGEventTapCreate(
@@ -192,6 +232,11 @@ class ActivityLogger:
         run_loop_source = CFMachPortCreateRunLoopSource(None, self.event_tap, 0)
         CFRunLoopAddSource(CFRunLoopGetCurrent(), run_loop_source, kCFRunLoopCommonModes)
 
+        # Notify GUI that we're starting
+        if self.on_status_change:
+            self.on_status_change("starting", "Activity logger starting...")
+        
+        self._running = True
         print("Low-level keyboard hook active!")
         print("Press Enter to capture screenshot BEFORE system processes it")
         print("Press Ctrl+C to stop\n")
@@ -200,11 +245,33 @@ class ActivityLogger:
             CFRunLoopRun()
         except KeyboardInterrupt:
             print("\nStopped.")
+        finally:
+            self._cleanup()
     
-    def stop(self):
-        """Stop the activity logger"""
+    def _cleanup(self):
+        """Clean up resources"""
         if self.event_tap:
             CGEventTapEnable(self.event_tap, False)
+            self.event_tap = None
+        
+        self._running = False
+        
+        # Notify GUI that we've stopped
+        if self.on_status_change:
+            self.on_status_change("stopped", "Activity logger stopped.")
+    
+    def stop(self):
+        """Stop the activity logger (thread-safe)"""
+        if not self._running:
+            return
+            
+        self._should_stop = True
+        
+        # Stop the CFRunLoop
+        from Quartz import CFRunLoopStop
+        CFRunLoopStop(CFRunLoopGetCurrent())
+        
+        self._cleanup()
 
 
 def main():

@@ -10,5 +10,7 @@ __author__ = "Michael Kim"
 __email__ = "your.email@example.com"
 
 from .core import ActivityLogger
+from .app import ActivityLoggerApp
+from .settings import Settings
 
-__all__ = ["ActivityLogger"]
+__all__ = ["ActivityLogger", "ActivityLoggerApp", "Settings"]

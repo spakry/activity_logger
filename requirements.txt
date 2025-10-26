@@ -3,3 +3,7 @@ pynput>=1.7.7
 Pillow>=10.0.0
 openai>=1.40.0
 pyobjc-framework-Quartz>=10.0.0
+rumps>=0.4.0
+keyring>=24.0.0
+pyobjc-framework-Cocoa>=10.0.0
+py2app>=0.28.0
