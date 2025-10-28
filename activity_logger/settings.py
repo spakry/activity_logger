@@ -36,6 +36,7 @@ class Settings:
         try:
             api_key = keyring.get_password(self.KEYCHAIN_SERVICE, "api_key")
             if api_key:
+                print("api_key: ", api_key)
                 return api_key
         except Exception as e:
             print(f"Error retrieving API key: {e}")

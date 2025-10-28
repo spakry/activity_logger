@@ -7,10 +7,10 @@ and log user actions for productivity tracking and analysis.
 
 __version__ = "1.0.0"
 __author__ = "Michael Kim"
-__email__ = "your.email@example.com"
+__email__ = "mjunyeopkim@gmail.com"
 
 from .core import ActivityLogger
-from .app import ActivityLoggerApp
+# from .app import ActivityLoggerApp
 from .settings import Settings
 
-__all__ = ["ActivityLogger", "ActivityLoggerApp", "Settings"]
+__all__ = ["ActivityLogger", "Settings"]

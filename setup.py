@@ -51,7 +51,6 @@ setup(
     entry_points={
         "console_scripts": [
             "activity-logger=activity_logger.cli:main",
-            "activity-logger-gui=activity_logger.app:main",
         ],
     },
     include_package_data=True,

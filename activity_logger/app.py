@@ -8,18 +8,19 @@ import rumps
 import threading
 from .core import ActivityLogger
 from .settings import Settings
-
-
+from .login_item import LoginItemManager
+APP_NAME = "Logger"
 class ActivityLoggerApp(rumps.App):
-    """Main menu bar application for Activity Logger"""
+    """Main menu bar application for Logger"""
     
     def __init__(self):
-        super().__init__("Activity Logger", icon="📝", template=True)
+        super().__init__("Logger", icon="/Users/michaelkim/src/activity_logger/resources/wood.icns", template=True, quit_button=None)
         self.logger = None
         self.logger_thread = None
         self.is_running = False
         self.settings = Settings()
-        
+        self.login_item_manager = LoginItemManager()
+
         # Setup menu items
         self.setup_menu()
         
@@ -30,16 +31,15 @@ class ActivityLoggerApp(rumps.App):
         print(f"Logger status: {status} - {message}")
         
     def setup_menu(self):
-        """Initialize the menu items"""
         self.menu = [
-            rumps.MenuItem("Start Logging", callback=self.start_stop_logging),
-            None,  # Separator
-            rumps.MenuItem("Preferences...", callback=self.show_preferences),
-            rumps.MenuItem("View Logs", callback=self.view_logs),
-            None,  # Separator
-            rumps.MenuItem("Quit", callback=self.quit_app)
+            rumps.MenuItem("Start Logging"),    # handled by decorator
+            None,
+            rumps.MenuItem("Preferences..."),
+            rumps.MenuItem("View Logs"),
+            None,
+            rumps.MenuItem("Quit"),             # single Quit item only
         ]
-        
+
     @rumps.clicked("Start Logging")
     def start_stop_logging(self, sender):
         """Start or stop the activity logger"""
@@ -78,7 +78,7 @@ class ActivityLoggerApp(rumps.App):
             self.is_running = True
             self.menu["Start Logging"].title = "Stop Logging"
             rumps.notification(
-                title="Activity Logger",
+                title= APP_NAME,
                 subtitle="Started",
                 message="Logging has begun"
             )
@@ -89,13 +89,22 @@ class ActivityLoggerApp(rumps.App):
                 message=f"{str(e)}\n\nPlease set your OpenAI API key in Preferences."
             )
         except RuntimeError as e:
+            print("Permission error: ", e)
+        # Handle permission error with UI
+            import subprocess
             rumps.alert(
-                title="Permission Error",
-                message=f"{str(e)}\n\nPlease grant Accessibility permissions in System Preferences."
+                title="Permission Required",
+                message="Logger needs Accessibility permission to monitor keyboard events.\n\nClick 'Grant Permission' to open System Settings.",
+                ok_button="Grant Permission"
             )
+            # Open System Preferences to Accessibility pane
+            subprocess.run([
+                'open', 
+                'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'
+            ])
         except Exception as e:
-            rumps.alert(title="Error", message=f"Failed to start logger: {str(e)}")
-            
+                rumps.alert(title="Error", message=f"Failed to start logger: {str(e)}")
+
     def stop_logging(self):
         """Stop the activity logger"""
         if self.logger:
@@ -108,7 +117,7 @@ class ActivityLoggerApp(rumps.App):
         self.menu["Start Logging"].title = "Start Logging"
         
         rumps.notification(
-            title="Activity Logger",
+            title= APP_NAME,
             subtitle="Stopped",
             message="Logging has stopped"
         )
@@ -142,8 +151,11 @@ class ActivityLoggerApp(rumps.App):
 
 
 def main():
-    """Launch the menu bar application"""
-    ActivityLoggerApp().run()
+    app = ActivityLoggerApp()
+    try:
+        app.run()
+    except KeyboardInterrupt:
+        app.quit_app(None)
 
 
 if __name__ == "__main__":

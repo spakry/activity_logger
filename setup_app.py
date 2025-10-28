@@ -32,6 +32,7 @@ OPTIONS = {
         'activity_logger.core',
         'activity_logger.app',
         'activity_logger.settings',
+        'activity_logger.login_item',
     ],
     'excludes': [
         'pydoc',

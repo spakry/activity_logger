@@ -8,7 +8,7 @@ from openai import OpenAI
 import io
 import base64
 from PIL import Image
-
+import signal
 ## todo find way to prevent lag on pressing enter. 
 
 from Quartz import (
@@ -172,7 +172,7 @@ class ActivityLogger:
         
         # Notify GUI of new log entry if callback is set
         if self.on_status_change:
-            self.on_status_change("logged ", response_content)
+            self.on_status_change("logged", response_content)
             
         return response_content     
     
@@ -182,10 +182,11 @@ class ActivityLogger:
             keycode = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode)
             
             if keycode == self.ENTER_KEYCODE:
+                print('enter pressed')
                 screenshot = self.capture_screenshot()
                 threading.Thread(target=self.save_screenshot, args=(screenshot,), daemon=True).start()
                 threading.Thread(target=self.analyze_screenshot_then_log, args=(screenshot,), daemon=True).start()
-
+    
                 if self.event_tap:
                     CGEventTapEnable(self.event_tap, True)
         
@@ -273,12 +274,23 @@ class ActivityLogger:
         
         self._cleanup()
 
+def _sigint_handler(_signum, _frame):                 # ✅ ADDED
+    if logger:
+        logger.stop()
+
 
 def main():
     """Main entry point for the activity logger"""
     try:
+        global logger
         logger = ActivityLogger()
-        logger.start()
+        signal.signal(signal.SIGINT, _sigint_handler) 
+        t = threading.Thread(target=logger.start, daemon=True)
+        t.start()
+        try:
+            t.join()
+        except KeyboardInterrupt:
+            _sigint_handler(None, None)
     except ValueError as e:
         print(f"Configuration Error: {e}")
         print("Please set your OpenAI API key:")
