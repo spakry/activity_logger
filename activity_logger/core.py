@@ -27,6 +27,23 @@ from Quartz import (
     CGEventGetIntegerValueField,
     kCGKeyboardEventKeycode
 )
+from Quartz import (
+    CGWindowListCopyWindowInfo,
+    kCGWindowListOptionOnScreenOnly,
+    kCGWindowListExcludeDesktopElements,
+    kCGNullWindowID,
+)
+from Quartz import (
+    CGWindowListCreateImage,
+    kCGWindowListOptionIncludingWindow,
+    kCGWindowImageBoundsIgnoreFraming,
+    CGRectInfinite,
+    CGImageGetWidth,
+    CGImageGetHeight,
+    CGImageGetDataProvider,
+    CGDataProviderCopyData,
+)
+from AppKit import NSWorkspace
 
 
 def encode_image_from_pil(image):
@@ -88,6 +105,69 @@ class ActivityLogger:
         """Encode image to base64 for API"""
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
+
+    def get_frontmost_window_info(self):
+        """Return info for the currently focused (frontmost) window.
+
+        Returns dict with keys: window_id, bounds (x, y, width, height), app_name, window_title, pid.
+        Returns None if it cannot be determined.
+        """
+        try:
+            workspace = NSWorkspace.sharedWorkspace()
+            app = workspace.frontmostApplication()
+            if app is None:
+                return None
+            pid = int(app.processIdentifier())
+            app_name = str(app.localizedName()) if app.localizedName() else ""
+
+            options = kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements
+            window_list = CGWindowListCopyWindowInfo(options, kCGNullWindowID) or []
+
+            # Windows are front-to-back ordered; pick the first for this PID with layer 0
+            front_windows = []
+            for w in window_list:
+                try:
+                    owner_pid = int(w.get('kCGWindowOwnerPID', -1))
+                    if owner_pid != pid:
+                        continue
+                    layer = int(w.get('kCGWindowLayer', 0))
+                    if layer != 0:
+                        continue
+                    bounds = w.get('kCGWindowBounds') or {}
+                    width = int(bounds.get('Width', 0))
+                    height = int(bounds.get('Height', 0))
+                    if width <= 2 or height <= 2:
+                        continue
+                    alpha = float(w.get('kCGWindowAlpha', 1.0))
+                    if alpha <= 0.01:
+                        continue
+                    front_windows.append(w)
+                except Exception:
+                    continue
+
+            if not front_windows:
+                return None
+
+            w = front_windows[0]
+            bounds = w.get('kCGWindowBounds') or {}
+            x = int(bounds.get('X', 0))
+            y = int(bounds.get('Y', 0))
+            width = int(bounds.get('Width', 0))
+            height = int(bounds.get('Height', 0))
+            window_id = int(w.get('kCGWindowNumber')) if w.get('kCGWindowNumber') is not None else None
+            window_title = w.get('kCGWindowName') or ""
+            owner_name = w.get('kCGWindowOwnerName') or app_name
+
+            return {
+                'window_id': window_id,
+                'bounds': (x, y, width, height),
+                'app_name': owner_name,
+                'window_title': window_title,
+                'pid': pid,
+            }
+        except Exception as e:
+            print(f"Failed to get frontmost window info: {e}")
+            return None
     
     def analyze_screenshot_then_log(self, image):
         """Send an in-memory screenshot to ChatGPT for analysis"""
@@ -147,6 +227,54 @@ class ActivityLogger:
         except Exception as e:
             print(f"Error analyzing screenshot: {e}")
             return "Error analyzing screenshot"
+    
+    def capture_focused_window(self):
+        """Capture only the currently focused window as a PIL Image.
+
+        Returns PIL Image on success, or None on failure (e.g., no focused window
+        or missing Screen Recording permission).
+        """
+        info = self.get_frontmost_window_info()
+        if not info or not info.get('window_id'):
+            return None
+
+        window_id = info['window_id']
+        try:
+            image_ref = CGWindowListCreateImage(
+                CGRectInfinite,  # ignored when IncludingWindow is used
+                kCGWindowListOptionIncludingWindow,
+                window_id,
+                kCGWindowImageBoundsIgnoreFraming,
+            )
+            if not image_ref:
+                # Likely missing Screen Recording permission, or window cannot be imaged
+                return None
+
+            width = int(CGImageGetWidth(image_ref))
+            height = int(CGImageGetHeight(image_ref))
+            if width == 0 or height == 0:
+                return None
+
+            provider = CGImageGetDataProvider(image_ref)
+            data = CGDataProviderCopyData(provider)
+            if data is None:
+                return None
+            raw = bytes(data)
+
+            # Convert from BGRA to RGBA for PIL
+            image = Image.frombuffer(
+                "RGBA",
+                (width, height),
+                raw,
+                "raw",
+                "BGRA",
+                0,
+                1,
+            )
+            return image
+        except Exception as e:
+            print(f"Failed to capture focused window: {e}")
+            return None
     
     def capture_screenshot(self):
         """Capture and save a screenshot using mss"""
