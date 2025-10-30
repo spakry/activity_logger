@@ -68,7 +68,8 @@ class ActivityLoggerApp(rumps.App):
                 api_key=api_key,
                 screenshot_folder=self.settings.get_screenshot_folder(),
                 log_dir=self.settings.get_log_dir(),
-                on_status_change=self._on_logger_status_change
+                on_status_change=self._on_logger_status_change,
+                capture_mode="focused_window",
             )
             
             # Start logger in a background thread
