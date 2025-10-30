@@ -71,6 +71,27 @@ class ActivityLoggerApp(rumps.App):
                 on_status_change=self._on_logger_status_change,
                 capture_mode="focused_window",
             )
+
+            # Preflight Screen Recording permission for focused-window mode
+            if getattr(self.logger, 'capture_mode', '') == 'focused_window':
+                try:
+                    probe = self.logger.capture_focused_window()
+                except Exception:
+                    probe = None
+                if probe is None:
+                    import subprocess
+                    rumps.alert(
+                        title="Screen Recording Required",
+                        message=(
+                            "Logger needs Screen Recording permission to capture the focused window.\n\n"
+                            "Click 'Open Settings' and enable your Python/menubar app in Screen Recording."
+                        ),
+                        ok_button="Open Settings",
+                    )
+                    subprocess.run([
+                        'open',
+                        'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'
+                    ])
             
             # Start logger in a background thread
             self.logger_thread = threading.Thread(target=self.logger.start, daemon=True)
