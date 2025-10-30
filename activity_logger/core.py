@@ -58,7 +58,7 @@ class ActivityLogger:
     AI-powered activity logger that captures screenshots and analyzes user actions.
     """
     
-    def __init__(self, api_key=None, screenshot_folder=None, log_dir="logs", on_status_change=None):
+    def __init__(self, api_key=None, screenshot_folder=None, log_dir="logs", on_status_change=None, capture_mode="full_display"):
         """
         Initialize the Activity Logger.
         
@@ -89,6 +89,9 @@ class ActivityLogger:
         self.ENTER_KEYCODE = 36
         self.event_tap = None
         
+        # Capture mode: "full_display" or "focused_window"
+        self.capture_mode = capture_mode if capture_mode in ("full_display", "focused_window") else "full_display"
+
         # Initialize MSS for screenshot capture
         self.mss_instance = mss.mss()
         
@@ -277,13 +280,16 @@ class ActivityLogger:
             return None
     
     def capture_screenshot(self):
-        """Capture and save a screenshot using mss"""
-        # Capture screenshot using mss (faster than pyautogui)
+        """Capture a screenshot per capture_mode with safe fallback to full display."""
+        if self.capture_mode == "focused_window":
+            img = self.capture_focused_window()
+            if img is not None:
+                return img
+            print("Focused window capture failed; falling back to full-display screenshot.")
+
+        # Full display capture via mss
         screenshot_data = self.mss_instance.grab(self.mss_instance.monitors[0])
-        
-        # Convert mss screenshot to PIL Image
         screenshot = Image.frombytes("RGB", screenshot_data.size, screenshot_data.bgra, "raw", "BGRX")
-        
         return screenshot
     
     def log_response(self, response_content):
