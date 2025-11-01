@@ -9,6 +9,8 @@ import threading
 from .core import ActivityLogger
 from .settings import Settings
 from .login_item import LoginItemManager
+import traceback
+
 APP_NAME = "Logger"
 class ActivityLoggerApp(rumps.App):
     """Main menu bar application for Logger"""
@@ -51,7 +53,6 @@ class ActivityLoggerApp(rumps.App):
     def start_logging(self):
         """Start the activity logger"""
         try:
-            # Get API key from settings (Keychain)
             api_key = self.settings.get_api_key()
             
             if not api_key:
@@ -93,10 +94,17 @@ class ActivityLoggerApp(rumps.App):
                         'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'
                     ])
             
-            # Start logger in a background thread
-            self.logger_thread = threading.Thread(target=self.logger.start, daemon=True)
-            self.logger_thread.start()
-            
+                try:
+                    self.logger_thread = threading.Thread(target=self.logger.start, daemon=True)
+                    self.logger_thread.start()
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    rumps.alert(
+                        title="An unexpected error occurred",
+                        message=f"An unexpected error occurred: {e} Please kindly email this error to the developer."
+                    )
+
             self.is_running = True
             self.menu["Start Logging"].title = "Stop Logging"
             rumps.notification(
@@ -176,8 +184,13 @@ def main():
     app = ActivityLoggerApp()
     try:
         app.run()
-    except KeyboardInterrupt:
-        app.quit_app(None)
+    except Exception as e:
+        print(f"\nUnexpected error occurred: {e}")
+        traceback.print_exc()
+    finally:
+        if app:
+            app.quit_app(None)
+
 
 
 if __name__ == "__main__":
