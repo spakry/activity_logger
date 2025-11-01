@@ -308,29 +308,29 @@ class ActivityLogger:
         # Return the event to let it continue to the system
         return event
     
-def save_screenshot(self, screenshot):
-    """Save screenshot to file; keep only 5 screenshots, deleting from right side of reverse-sorted list."""
-    file_path = os.path.join(self.screenshot_folder, f"screenshot_{self.file_num}.png")
-    self.file_num += 1
-    screenshot.save(file_path)
-    print(f'screenshot saved to {file_path}')
+    def save_screenshot(self, screenshot):
+        """Save screenshot to file; keep only 5 screenshots, deleting from right side of reverse-sorted list."""
+        file_path = os.path.join(self.screenshot_folder, f"screenshot_{self.file_num}.png")
+        self.file_num += 1
+        screenshot.save(file_path)
+        print(f'screenshot saved to {file_path}')
 
-    # --- New logic: reverse sort by modification time ---
-    screenshots = sorted(
-        [os.path.join(self.screenshot_folder, f) for f in os.listdir(self.screenshot_folder)
-         if f.lower().endswith('.png')],
-        key=os.path.getmtime,
-        reverse=True   # newest first
-    )
+        # --- New logic: reverse sort by modification time ---
+        screenshots = sorted(
+            [os.path.join(self.screenshot_folder, f) for f in os.listdir(self.screenshot_folder)
+            if f.lower().endswith('.png')],
+            key=os.path.getmtime,
+            reverse=True   # newest first
+        )
 
-    while len(screenshots) > 5:
-        oldest = screenshots.pop()
-        try:
-            os.remove(oldest)
-            print(f'deleted screenshot: {oldest}')
-        except Exception as e:
-            print(f'failed to delete {oldest}: {e}')
-            break
+        while len(screenshots) > 5:
+            oldest = screenshots.pop()
+            try:
+                os.remove(oldest)
+                print(f'deleted screenshot: {oldest}')
+            except Exception as e:
+                print(f'failed to delete {oldest}: {e}')
+                break
     
     def is_running(self):
         """Check if the logger is currently running"""
