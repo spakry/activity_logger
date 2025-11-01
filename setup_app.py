@@ -8,7 +8,7 @@ from setuptools import setup
 import os
 
 APP = ['activity_logger/app.py']
-APP_NAME = 'Activity Logger'
+APP_NAME = 'Logger'
 
 DATA_FILES = []
 OPTIONS = {
@@ -24,6 +24,8 @@ OPTIONS = {
         'pydantic',
         'httpx',
         'Quartz',
+        'AppKit',
+        'Foundation',
         'Cocoa',
         'keyring.backends.macOS',
         'activity_logger',
@@ -33,6 +35,7 @@ OPTIONS = {
         'activity_logger.app',
         'activity_logger.settings',
         'activity_logger.login_item',
+        'activity_logger.prompts',
     ],
     'excludes': [
         'pydoc',
@@ -42,7 +45,9 @@ OPTIONS = {
         'inspect',
         'sqlite3',
     ],
-    'resources': [],
+    'resources': [
+        os.path.join('resources', 'wood.icns'),
+    ],
     'plist': {
         'CFBundleName': APP_NAME,
         'CFBundleDisplayName': APP_NAME,
@@ -51,9 +56,11 @@ OPTIONS = {
         'CFBundleShortVersionString': '1.0.0',
         'CFBundleGetInfoString': 'AI-powered activity logger',
         'CFBundleExecutable': APP_NAME,
+        'CFBundleIconFile': 'wood.icns',
         'NSHighResolutionCapable': True,
         'LSMinimumSystemVersion': '10.13',
         'LSApplicationCategoryType': 'public.app-category.utilities',
+        'LSUIElement': True,
         'NSAccessibilityUsageDescription': 'Activity Logger needs accessibility access to monitor keyboard events for screenshot capture when you press Enter.',
         'NSScreenCaptureUsageDescription': 'Activity Logger captures screenshots to analyze your activities and create activity logs.',
     },
