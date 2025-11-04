@@ -9,6 +9,7 @@ import io
 import base64
 from PIL import Image
 import signal
+from typing import Optional, Dict, Tuple, Callable, Any, List
 ## todo find way to prevent lag on pressing enter. 
 
 from Quartz import (
@@ -44,10 +45,12 @@ from Quartz import (
     CGDataProviderCopyData,
 )
 from AppKit import NSWorkspace
+
+from activity_logger.redact import redact_image
 from .prompts import build_activity_prompt
 
 
-def encode_image_from_pil(image):
+def encode_image_from_pil(image: Image.Image) -> str:
     buffer = io.BytesIO()        # create an in-memory binary stream
     image.save(buffer, format="PNG")  # write the image as PNG into the buffer
     buffer.seek(0)
@@ -59,7 +62,14 @@ class ActivityLogger:
     AI-powered activity logger that captures screenshots and analyzes user actions.
     """
     
-    def __init__(self, api_key=None, screenshot_folder=None, log_dir="logs", on_status_change=None, capture_mode="full_display"):
+    def __init__(
+        self, 
+        api_key: Optional[str] = None, 
+        screenshot_folder: Optional[str] = None, 
+        log_dir: str = "logs", 
+        on_status_change: Optional[Callable[[str, str], None]] = None, 
+        capture_mode: str = "full_display"
+    ) -> None:
         """
         Initialize the Activity Logger.
         
@@ -104,12 +114,12 @@ class ActivityLogger:
         self._should_stop = False
         self._run_loop_thread = None
     
-    def encode_image(self, image_path):
+    def encode_image(self, image_path: str) -> str:
         """Encode image to base64 for API"""
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
 
-    def get_frontmost_window_info(self):
+    def get_frontmost_window_info(self) -> Optional[Dict[str, Any]]:
         """Return info for the currently focused (frontmost) window.
 
         Returns dict with keys: window_id, bounds (x, y, width, height), app_name, window_title, pid.
@@ -172,10 +182,12 @@ class ActivityLogger:
             print(f"Failed to get frontmost window info: {e}")
             return None
     
-    def analyze_screenshot_then_log(self, image):
+    def analyze_screenshot_then_log(self, image: Image.Image) -> str:
         """Send an in-memory screenshot to ChatGPT for analysis"""
         try:
             base64_image = encode_image_from_pil(image)
+            redacted_image = redact_image(image, "redacted.png")
+            
             info = self.get_frontmost_window_info()
             prompt_text = build_activity_prompt(
                 (info.get('app_name') if info else None),
@@ -212,7 +224,7 @@ class ActivityLogger:
             print(f"Error analyzing screenshot: {e}")
             return "Error analyzing screenshot"
     
-    def capture_focused_window(self):
+    def capture_focused_window(self) -> Optional[Image.Image]:
         """Capture only the currently focused window as a PIL Image.
 
         Returns PIL Image on success, or None on failure (e.g., no focused window
@@ -260,7 +272,7 @@ class ActivityLogger:
             print(f"Failed to capture focused window: {e}")
             return None
     
-    def capture_screenshot(self):
+    def capture_screenshot(self) -> Image.Image:
         """Capture a screenshot per capture_mode with safe fallback to full display."""
         if self.capture_mode == "focused_window":
             img = self.capture_focused_window()
@@ -273,7 +285,7 @@ class ActivityLogger:
         screenshot = Image.frombytes("RGB", screenshot_data.size, screenshot_data.bgra, "raw", "BGRX")
         return screenshot
     
-    def log_response(self, response_content):
+    def log_response(self, response_content: str) -> str:
         """Log the AI response to a daily log file"""
         date_str = datetime.datetime.now().strftime("%m-%d-%y")   # CHANGED
         log_filename = f"actions_log_{date_str}.txt"              # CHANGED
@@ -291,7 +303,7 @@ class ActivityLogger:
             
         return response_content     
     
-    def keyboard_event_callback(self, proxy, event_type, event, refcon):
+    def keyboard_event_callback(self, proxy: Any, event_type: Any, event: Any, refcon: Any) -> Any:
         """This runs BEFORE the system processes the key"""
         if event_type == kCGEventKeyDown:
             keycode = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode)
@@ -308,7 +320,7 @@ class ActivityLogger:
         # Return the event to let it continue to the system
         return event
     
-    def save_screenshot(self, screenshot):
+    def save_screenshot(self, screenshot: Image.Image) -> None:
         """Save screenshot to file; keep only 5 screenshots, deleting from right side of reverse-sorted list."""
         file_path = os.path.join(self.screenshot_folder, f"screenshot_{self.file_num}.png")
         self.file_num += 1
@@ -332,11 +344,11 @@ class ActivityLogger:
                 print(f'failed to delete {oldest}: {e}')
                 break
     
-    def is_running(self):
+    def is_running(self) -> bool:
         """Check if the logger is currently running"""
         return self._running
         
-    def start(self):
+    def start(self) -> None:
         """Start the activity logger"""
         if self._running:
             return
@@ -380,7 +392,7 @@ class ActivityLogger:
         finally:
             self._cleanup()
     
-    def _cleanup(self):
+    def _cleanup(self) -> None:
         """Clean up resources"""
         if self.event_tap:
             CGEventTapEnable(self.event_tap, False)
@@ -392,7 +404,7 @@ class ActivityLogger:
         if self.on_status_change:
             self.on_status_change("stopped", "Activity logger stopped.")
     
-    def stop(self):
+    def stop(self) -> None:
         """Stop the activity logger (thread-safe)"""
         if not self._running:
             return
@@ -405,12 +417,12 @@ class ActivityLogger:
         
         self._cleanup()
 
-def _sigint_handler(_signum, _frame):                 # ✅ ADDED
+def _sigint_handler(_signum: Optional[int], _frame: Optional[Any]) -> None:
     if logger:
         logger.stop()
 
 
-def main():
+def main() -> int:
     """Main entry point for the activity logger"""
     try:
         global logger
