@@ -185,8 +185,9 @@ class ActivityLogger:
     def analyze_screenshot_then_log(self, image: Image.Image) -> str:
         """Send an in-memory screenshot to ChatGPT for analysis"""
         try:
-            base64_image = encode_image_from_pil(image)
-            redacted_image = redact_image(image, "redacted.png")
+        
+            redacted_image: Image.Image = redact_image(image)
+            base64_image = encode_image_from_pil(redacted_image)
             
             info = self.get_frontmost_window_info()
             prompt_text = build_activity_prompt(
@@ -310,7 +311,7 @@ class ActivityLogger:
             
             if keycode == self.ENTER_KEYCODE:
                 print('enter pressed')
-                screenshot = self.capture_screenshot()
+                screenshot: Image.Image = self.capture_screenshot()
                 threading.Thread(target=self.save_screenshot, args=(screenshot,), daemon=True).start()
                 threading.Thread(target=self.analyze_screenshot_then_log, args=(screenshot,), daemon=True).start()
     
@@ -324,7 +325,8 @@ class ActivityLogger:
         """Save screenshot to file; keep only 5 screenshots, deleting from right side of reverse-sorted list."""
         file_path = os.path.join(self.screenshot_folder, f"screenshot_{self.file_num}.png")
         self.file_num += 1
-        screenshot.save(file_path)
+        redacted_screenshot: Image.Image = redact_image(screenshot)
+        redacted_screenshot.save(file_path)
         print(f'screenshot saved to {file_path}')
 
         # --- New logic: reverse sort by modification time ---
