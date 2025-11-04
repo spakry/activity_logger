@@ -7,3 +7,5 @@ rumps>=0.4.0
 keyring>=24.0.0
 pyobjc-framework-Cocoa>=10.0.0
 py2app>=0.28
+opencv-python>=4.8.0
+pytesseract>=0.3.10
