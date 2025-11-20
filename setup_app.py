@@ -44,6 +44,13 @@ OPTIONS = {
         'difflib',
         'inspect',
         'sqlite3',
+        'pip',
+        'setuptools',
+        'wheel',
+        'pkg_resources',
+        'distutils',
+        'backports',
+        'backports.tarfile',
     ],
     'resources': [
         os.path.join('resources', 'wood.icns'),
