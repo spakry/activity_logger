@@ -6,6 +6,7 @@ An AI-powered activity logger that captures screenshots and analyzes user action
 
 - **Automatic Screenshot Capture**: Takes screenshots when you press Enter
 - **AI-Powered Analysis**: Uses OpenAI's GPT-4 Vision to analyze and describe actions
+- **Local Vision-Language Model**: Optional LLaVA 1.6 7B (4-bit) inference to run fully offline
 - **Activity Logging**: Saves detailed logs with timestamps
 - **Low-Level Key Interception**: Captures Enter key presses before system processing
 - **Threaded Processing**: Non-blocking screenshot capture and analysis
@@ -74,6 +75,26 @@ activity-logger
 - **Activity Logs**: Saved to `logs/actions_log_MM-DD-YY.txt`
 - **Format**: Each log entry includes timestamp
 
+## Run locally with LLaVA 1.6 7B (4-bit)
+
+You can run activity recognition fully offline by loading the quantized LLaVA 1.6 7B vision-language model locally.
+The macOS app bundle (DMG) ships with the local inference pathway enabled by default, so it works without an API key.
+
+1. Ensure you have a GPU or Apple Silicon device for best performance (CPU works but is slower).
+2. The first run downloads the model weights from Hugging Face; keep ~8GB free disk space.
+3. Start the logger with the local model flag:
+
+```bash
+activity-logger --use-local-model
+```
+
+Optional flags:
+
+- `--llava-model <model-id-or-path>`: point to a different or pre-downloaded LLaVA checkpoint
+- `--model-device <device>`: force device placement (e.g., `cuda:0`, `mps`, or `cpu`)
+
+When `--use-local-model` is enabled, no OpenAI API key is required.
+
 ## File Structure
 
 ```
@@ -91,11 +112,10 @@ activity_logger/
 
 ## Dependencies
 
-- `pyautogui` - Screenshot capture
-- `pynput` - Input monitoring
-- `Pillow` - Image processing
-- `openai` - AI API integration
-- `pyobjc-framework-Quartz` - macOS system integration
+- `pynput` and `pyobjc` - Input monitoring and macOS integration
+- `mss` and `Pillow` - Screenshot capture and image processing
+- `openai` - Cloud-based GPT-4o analysis
+- `torch`, `transformers`, `bitsandbytes`, `accelerate` - Local LLaVA 1.6 7B (4-bit) inference
 
 ## Troubleshooting
 
