@@ -78,6 +78,7 @@ activity-logger
 ## Run locally with LLaVA 1.6 7B (4-bit)
 
 You can run activity recognition fully offline by loading the quantized LLaVA 1.6 7B vision-language model locally.
+The macOS app bundle (DMG) ships with the local inference pathway enabled by default, so it works without an API key.
 
 1. Ensure you have a GPU or Apple Silicon device for best performance (CPU works but is slower).
 2. The first run downloads the model weights from Hugging Face; keep ~8GB free disk space.

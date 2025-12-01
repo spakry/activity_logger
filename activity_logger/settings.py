@@ -19,6 +19,7 @@ class Settings:
     # Default settings
     DEFAULT_SCREENSHOT_FOLDER = os.path.expanduser("~/Desktop/Screenshots")
     DEFAULT_LOG_DIR = "logs"
+    DEFAULT_USE_LOCAL_MODEL = True
     
     def __init__(self):
         """Initialize settings"""
@@ -94,7 +95,8 @@ class Settings:
             "screenshot_folder": self.DEFAULT_SCREENSHOT_FOLDER,
             "log_dir": self.DEFAULT_LOG_DIR,
             "auto_start": False,
-            "minimize_to_tray": True
+            "minimize_to_tray": True,
+            "use_local_model": self.DEFAULT_USE_LOCAL_MODEL,
         }
         
     def set_preferences(self, preferences):
@@ -151,6 +153,14 @@ class Settings:
     def set_auto_start(self, value):
         """Set auto-start preference"""
         return self.set("auto_start", bool(value))
+
+    def get_use_local_model(self):
+        """Get preference for using the bundled local LLaVA model"""
+        return bool(self.get("use_local_model", self.DEFAULT_USE_LOCAL_MODEL))
+
+    def set_use_local_model(self, value):
+        """Set preference for using the bundled local LLaVA model"""
+        return self.set("use_local_model", bool(value))
         
     def reset_to_defaults(self):
         """Reset all settings to defaults"""

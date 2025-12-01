@@ -54,19 +54,25 @@ class ActivityLoggerApp(rumps.App):
         """Start the activity logger"""
         try:
             api_key = self.settings.get_api_key()
-            
-            if not api_key:
+            use_local_model = self.settings.get_use_local_model()
+
+            if not api_key and not use_local_model:
+                # If a user hasn't opted into local mode, steer them to preferences
                 rumps.alert(
-                    title="API Key Required",
-                    message="Please set your OpenAI API key in Preferences.",
+                    title="Configuration Required",
+                    message=(
+                        "No API key found. You can either set an OpenAI API key or enable"
+                        " the bundled local LLaVA model in Preferences."
+                    ),
                     ok="Open Preferences"
                 )
                 self.show_preferences(None)
                 return
-            
+
             # Initialize the logger with API key and settings
             self.logger = ActivityLogger(
                 api_key=api_key,
+                use_local_model=use_local_model or not api_key,
                 screenshot_folder=self.settings.get_screenshot_folder(),
                 log_dir=self.settings.get_log_dir(),
                 on_status_change=self._on_logger_status_change,
