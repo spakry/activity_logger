@@ -46,6 +46,7 @@ from Quartz import (
 )
 from AppKit import NSWorkspace
 
+from activity_logger.local_model import DEFAULT_LLAVA_MODEL_ID, LocalLlavaAnalyzer
 from activity_logger.redact import redact_image
 from .prompts import build_activity_prompt
 
@@ -64,10 +65,13 @@ class ActivityLogger:
     
     def __init__(
         self, 
-        api_key: Optional[str] = None, 
-        screenshot_folder: Optional[str] = None, 
-        log_dir: str = "logs", 
-        on_status_change: Optional[Callable[[str, str], None]] = None, 
+        api_key: Optional[str] = None,
+        use_local_model: bool = False,
+        llava_model_id: str = DEFAULT_LLAVA_MODEL_ID,
+        model_device: Optional[str] = None,
+        screenshot_folder: Optional[str] = None,
+        log_dir: str = "logs",
+        on_status_change: Optional[Callable[[str, str], None]] = None,
         capture_mode: str = "full_display"
     ) -> None:
         """
@@ -75,15 +79,33 @@ class ActivityLogger:
         
         Args:
             api_key (str): OpenAI API key. If None, uses OPENAI_API_KEY env var.
+                Not required when use_local_model is True.
+            use_local_model (bool): Whether to run analysis with a local LLaVA model.
+            llava_model_id (str): Model id or path for the local LLaVA weights.
+            model_device (str): Device override for local model (e.g., "cuda:0", "mps").
             screenshot_folder (str): Folder to save screenshots. Defaults to ~/Desktop/Screenshots
             log_dir (str): Directory to save activity logs. Defaults to 'logs'
             on_status_change (callable): Optional callback function(status, message) for status updates
         """
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError("OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass api_key parameter.")
-        
-        self.client = OpenAI(api_key=self.api_key)
+        self.use_local_model = use_local_model
+        self.llava_model_id = llava_model_id
+        self.model_device = model_device
+        self.api_key = api_key
+        self.client: Optional[OpenAI] = None
+        self.local_analyzer: Optional[LocalLlavaAnalyzer] = None
+
+        if self.use_local_model:
+            self.local_analyzer = LocalLlavaAnalyzer(
+                model_id=self.llava_model_id,
+                device=self.model_device,
+                load_in_4bit=True,
+            )
+        else:
+            self.api_key = self.api_key or os.getenv("OPENAI_API_KEY")
+            if not self.api_key:
+                raise ValueError("OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass api_key parameter.")
+
+            self.client = OpenAI(api_key=self.api_key)
         self.log_dir = log_dir
         
         # Setup screenshot folder
@@ -182,44 +204,59 @@ class ActivityLogger:
             print(f"Failed to get frontmost window info: {e}")
             return None
     
+    def _analyze_with_openai(self, prompt_text: str, base64_image: str) -> str:
+        if self.client is None:
+            raise RuntimeError("OpenAI client not configured")
+
+        response = self.client.chat.completions.create(
+            model="gpt-4o-mini",  # or "gpt-4o"
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": prompt_text,
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{base64_image}"
+                            },
+                        },
+                    ],
+                }
+            ],
+            max_tokens=150,
+        )
+        return response.choices[0].message.content or ""
+
     def analyze_screenshot_then_log(self, image: Image.Image) -> str:
-        """Send an in-memory screenshot to ChatGPT for analysis"""
+        """Send an in-memory screenshot to ChatGPT or local LLaVA for analysis"""
         try:
-        
             redacted_image: Image.Image = redact_image(image)
-            base64_image = encode_image_from_pil(redacted_image)
-            
+
             info = self.get_frontmost_window_info()
             prompt_text = build_activity_prompt(
                 (info.get('app_name') if info else None),
                 (info.get('window_title') if info else None),
             )
 
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",  # or "gpt-4o"
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": prompt_text,
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/png;base64,{base64_image}"
-                                },
-                            },
-                        ],
-                    }
-                ],
-                max_tokens=150,
-            )
-            chosen_response_content = response.choices[0].message.content 
+            if self.use_local_model and self.local_analyzer:
+                chosen_response_content = self.local_analyzer.generate_activity_log(
+                    redacted_image,
+                    prompt_text,
+                )
+            else:
+                base64_image = encode_image_from_pil(redacted_image)
+                chosen_response_content = self._analyze_with_openai(
+                    prompt_text,
+                    base64_image,
+                )
+
             self.log_response(chosen_response_content)
 
-            return response.choices[0].message.content
+            return chosen_response_content
 
         except Exception as e:
             print(f"Error analyzing screenshot: {e}")

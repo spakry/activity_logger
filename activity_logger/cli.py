@@ -29,7 +29,25 @@ Requirements:
     
     parser.add_argument(
         "--api-key",
-        help="OpenAI API key (default: uses OPENAI_API_KEY environment variable)"
+        help="OpenAI API key (default: uses OPENAI_API_KEY environment variable)",
+    )
+
+    parser.add_argument(
+        "--use-local-model",
+        action="store_true",
+        help="Use local LLaVA 1.6 7B 4-bit model instead of OpenAI",
+    )
+
+    parser.add_argument(
+        "--llava-model",
+        default=None,
+        help="Override the LLaVA model id or path (default: llava-hf/llava-1.6-7b-hf)",
+    )
+
+    parser.add_argument(
+        "--model-device",
+        default=None,
+        help="Device for local model loading (e.g., cuda:0, mps, cpu)",
     )
     
     parser.add_argument(
@@ -54,6 +72,9 @@ Requirements:
         # Initialize the logger
         logger = ActivityLogger(
             api_key=args.api_key,
+            use_local_model=args.use_local_model,
+            llava_model_id=args.llava_model or None,
+            model_device=args.model_device,
             screenshot_folder=args.screenshots,
             log_dir=args.logs or "logs"
         )
